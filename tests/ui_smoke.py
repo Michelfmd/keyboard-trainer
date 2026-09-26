@@ -12,21 +12,31 @@ from app.ui.test_view import TestView
 
 def run() -> None:
     app = KeyboardTrainer()
+    app.sound_enabled = False
     failures: list[object] = []
     app.report_callback_exception = lambda *error: failures.append(error)
     try:
         app.update()
-        app.counts = {"words": 1, "random_keys": 2}
+        app.counts.update({"words": 1, "random_keys": 2})
         for mode_name in ("words", "random_keys"):
             app.start_mode(mode_name)
             app.update()
             app.focus_force()
+            app.after(180, app.quit)
+            app.mainloop()
+            app.lift()
+            app.focus_force()
             app.update()
             view = app.view
             assert isinstance(view, TestView)
-            app.event_generate("<KeyPress>", keysym="question")
+            app.event_generate("<KeyPress>", keysym="question", state=0)
             app.update()
-            assert len(view.mode.session.events) == 1
+            assert len(view.mode.session.events) == 1, (
+                mode_name,
+                app.focus_get(),
+                view.mode.session.events,
+                failures,
+            )
             for keysym, state in (
                 ("Shift_L", 0),
                 ("BackSpace", 0),
@@ -36,10 +46,17 @@ def run() -> None:
             ):
                 app.event_generate("<KeyPress>", keysym=keysym, state=state)
                 app.update()
-            assert len(view.mode.session.events) == 1
+            assert len(view.mode.session.events) == 1, (
+                mode_name,
+                app.focus_get(),
+                view.mode.session.events,
+                failures,
+            )
             while not view.mode.is_finished():
                 key = view.mode.get_target()
-                app.event_generate("<KeyPress>", keysym="space" if key == " " else key)
+                app.event_generate(
+                    "<KeyPress>", keysym="space" if key == " " else key, state=0
+                )
                 app.update()
             assert isinstance(app.view, ResultsView)
             assert len(app.history[-1].events) > 0
@@ -62,7 +79,8 @@ def run() -> None:
         app.start_mode("random_keys")
         app.update()
         app.focus_force()
-        app.update()
+        app.after(180, app.quit)
+        app.mainloop()
         app.event_generate("<KeyPress>", keysym="Escape")
         app.update()
         assert not isinstance(app.view, TestView)

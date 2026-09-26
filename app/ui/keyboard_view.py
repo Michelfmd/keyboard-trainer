@@ -1,4 +1,5 @@
 import tkinter as tk
+from collections.abc import Iterable
 
 from app.core.keyboard_layout import KeyboardLayout
 from app.ui.components.motion import Motion, blend
@@ -11,7 +12,7 @@ class KeyboardView(tk.Frame):
         super().__init__(parent, bg=BG)
         self.layout = layout if layout is not None else KeyboardLayout()
         self.keys: dict[str, tk.Label] = {}
-        self.expected = ""
+        self.expected: frozenset[str] = frozenset()
         self.motion = Motion(self)
         self._timers: dict[str, str] = {}
         for row_index, row in enumerate(self.layout.rows):
@@ -35,10 +36,25 @@ class KeyboardView(tk.Frame):
                 self.keys[key] = key_label
 
     def set_expected(self, key: str) -> None:
-        self.expected = self.layout.normalize(key)
+        self.set_expected_keys((key,) if key else ())
+
+    def set_expected_keys(self, keys: Iterable[str]) -> None:
+        self.expected = frozenset(self.layout.normalize(key) for key in keys)
         for name, widget in self.keys.items():
             widget.config(
-                highlightbackground=ACCENT if name == self.expected else BORDER
+                highlightbackground=ACCENT if name in self.expected else BORDER
+            )
+
+    def set_pressed_keys(self, keys: Iterable[str]) -> None:
+        pressed = {self.layout.normalize(key) for key in keys}
+        for name, widget in self.keys.items():
+            if name in self._timers:
+                self.after_cancel(self._timers.pop(name))
+            self.motion.cancel(name)
+            color = GOOD if name in self.expected else BAD
+            widget.configure(
+                bg=color if name in pressed else PANEL,
+                fg=BG if name in pressed else MUTED,
             )
 
     def flash(self, key: str, correct: bool) -> None:

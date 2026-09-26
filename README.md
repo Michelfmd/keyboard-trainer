@@ -1,6 +1,6 @@
 # Keyboard Trainer
 
-A Python 3.10+ desktop typing trainer using Tkinter and the standard library.
+A Python 3.10+ desktop typing and guitar trainer using Tkinter and the standard library.
 
 ## Run
 
@@ -19,7 +19,7 @@ Tkinter and a graphical desktop are required. On Debian/Ubuntu, install
   length, 20 words by default) on the Practice screen. Easy and Medium choose
   their word count randomly each exercise. Practice again keeps the difficulty.
   On Results, press Enter (or keypad Enter) for the next exercise without the mouse.
-  This shortcut preserves the mode, difficulty and language; it is inactive during practice.
+  This shortcut preserves the mode, difficulty and language; during guitar practice, Enter confirms the current chord.
 - **Random Keys:** type the displayed letter. Incorrect attempts are recorded;
   the target remains until the correct key is pressed.
 - Timing starts when the exercise appears. Response time is the interval from
@@ -33,7 +33,7 @@ Tkinter and a graphical desktop are required. On Debian/Ubuntu, install
 - Settings offer English and Spanish for the interface and local practice words.
   Spanish exercises include accents and ñ; use a keyboard layout or input method
   that can type them. Random Keys continues to train the same QWERTY letters.
-- Settings configure Hard word count and Random Keys length (1–200). Settings, completed sessions,
+- Settings configure Hard word count, Random Keys length and Chords per exercise (1–200). Settings, completed sessions,
   and their individual events remain in memory until the app closes.
 
 ## Metrics
@@ -55,13 +55,21 @@ Keyboard positions model a US QWERTY layout, not the OS keyboard configuration.
 - `main.py`: entry point only.
 - `app/core`: events, sessions, pure metric calculation, keyboard geometry.
 - `app/modes`: common mode interface and exercise advancement rules.
-- `app/data`: local English word list, shuffled in batches without repetition.
+- `app/data`: local English/Spanish word lists and standard guitar chord voicings.
 - `app/ui`: navigation, screens, reusable cards, text and keyboard components.
 
-Modes consume normalized printable inputs independently of Tkinter. The UI
-adapter filters raw events. A future simultaneous-key mode can extend the input
-adapter and common mode interface without changing the event history or metric
-engine. No chord mode is implemented.
+`BaseMode` defines session lifecycle, targets and progress. `TypingMode` owns
+character input for Words/Random Keys. `ChordMode` owns manual guitar progression.
+`Session[EventT]` accepts typing `InputEvent` or guitar `ChordAttempt` records;
+metrics stay independent of Tk and guitar attempts never contribute to WPM.
+
+Guitar `Chord` data holds six frets and finger numbers (string 6 to 1), optional
+barre geometry and a lesson reference. `GuitarDiagram` renders these as a canvas.
+`ChordAssessment` is the evaluation boundary: manual input has `source="manual"`
+and `correct=None`. A future microphone adapter can analyze captured audio against
+`Chord.midi_notes` and deliver its assessment through `ChordMode.submit_assessment`.
+Audio capture, permissions, analysis and measured-accuracy UI are not implemented.
+The UI never interprets a manual confirmation as proof of a correctly played chord.
 
 ## Tests
 
@@ -75,7 +83,6 @@ For the optional GUI smoke test on a headless Linux machine, install Xvfb:
 ```sh
 xvfb-run -a python3 tests/ui_smoke.py
 ```
-# keyboard-trainer
 
 ## Interface and motion
 
@@ -106,17 +113,85 @@ application run: session count, total practice time, inputs, correct inputs,
 errors, overall accuracy, WPM and CPM, average response time and keys per second.
 Accuracy is weighted by input count, speed uses summed practice duration (without
 breaks between sessions), and response time is averaged across individual attempts.
-The individual session history remains below the summary. Cancelled exercises
+The individual session history remains below the summary. Cancelled typing exercises
 are excluded, and closing the application clears this in-memory history.
 
 ## Start menu and activities
 
-The application opens on a menu with Keyboard, Guitar and access to Settings.
-Keyboard opens the existing Words and Random Keys exercises. Guitar is a disabled
-presentation card only: it has no route, exercise logic or session state.
-The Menu navigation tab returns to this screen from the keyboard section.
+The application opens on a menu with Keyboard, Guitar and Settings.
+Keyboard contains Words and Random Keys. Guitar opens its own difficulty screen.
+The navigation shows the current activity; Menu lets you switch activities.
+`app/activities.py` is the activity catalog; `app/ui/app.py` owns routing.
 
-`app/activities.py` defines the activity catalog independently of exercise modes.
-`app/ui/menu_view.py` renders the catalog and emits selection callbacks; `app/ui/app.py`
-owns navigation and routes available activities. Future guitar implementation can
-add its own screens and modes without treating guitar as a typing `BaseMode`.
+## Guitar chords
+
+Choose **Guitar → Easy, Medium or Hard**:
+
+- Easy: Em, E, Am.
+- Medium: A, D, Dm, C, G.
+- Hard: F and Bm with full barres.
+
+These are instructional groupings for this app. Settings control the number of
+chords (default 20). Adjacent targets do not repeat.
+
+Each level offers two exercises. **With guitar** keeps the diagram-based manual
+practice. **Laptop keys** trains chord-change speed without requiring a guitar:
+hold every highlighted key at the same time. As soon as the shape is correct, a
+different chord appears; release the previous combination before forming it. The
+timer starts at the previous success, so it includes releasing and repositioning.
+A four-row grid maps laptop keys to guitar positions:
+QWERYU is fret 1, ASDFGH fret 2, ZXCVBN fret 3, and 123456 fret 4; columns run
+from string 6 to string 1. A barre uses one key at its starting position.
+The second-string position on fret 1 uses Y instead of T because combinations such
+as T+D+F are not reported reliably by some laptop keyboard matrices. T and I remain
+input aliases for compatibility, while the interface displays the closer Y key.
+
+Laptop sessions record completed and clean changes, extra-key errors, accuracy,
+average change time and fastest change. A wrong key can be released and corrected;
+that chord completes but is not marked clean. Held key repeats are ignored. The
+Guitar statistics tab combines manual and laptop sessions without mixing either
+one into typing WPM. Every chord in the selected level appears once before that
+level's chord pool is reused, and the same chord never appears twice in a row.
+The visual keyboard resets as soon as a chord is accepted. Keys from the previous
+shape remain release-gated internally, so they cannot appear red or become errors
+for the new chord. Each key unlocks independently when released, so one missing
+release event cannot freeze the whole exercise; operating-system key-repeat pairs
+are coalesced as well. A live timer shows total session time.
+
+Read the diagram, place your fingers and play your guitar. Click **Practiced** or
+press and release **Enter** to continue; **Skip** records an omitted target.
+The diagram shows standard tuning, string numbers (6/thick on the left), fret
+numbers, finger numbers, open strings (O), muted strings (X), and barres.
+The side panel also describes every string. **View lesson** opens the reference
+page in your browser; practice itself works offline.
+
+**Stop / Esc** saves a partial guitar session if any targets were reviewed,
+otherwise it returns to the guitar screen. Enter on Results starts another session
+with the same difficulty. All history lasts until the application closes.
+Statistics has separate Typing and Guitar tabs, plus combined session/time totals.
+Guitar reports practiced, skipped, distinct practiced chords and elapsed time;
+it does not report musical accuracy. Time includes idle and unfocused time.
+No microphone access or additional Python dependency is used.
+
+## Sound
+
+Correct typing inputs play a short, quiet confirmation tone. Guitar practice plays
+a locally synthesized strum using the standard-tuning pitches in each displayed
+voicing; manual practice also includes a **Play chord** button. Audio files are
+generated in a temporary directory and contain no downloaded samples. Playback is
+non-blocking through the first available system player (`paplay`, `pw-play`,
+`aplay`, or `afplay`; Windows uses `winsound`). Sound effects can be disabled in
+Settings and the preference lasts for the current application run.
+
+Voicing references: [ChordBank guitar lessons](https://chordbank.com/chords/),
+including [C major](https://chordbank.com/chords/c-major/),
+[F major](https://chordbank.com/chords/f-major/) and
+[B minor](https://chordbank.com/chords/b-minor/). Each chord in
+`app/data/chords.py` includes its lesson slug. Diagrams are drawn locally from
+fret positions; website images, recordings and lesson text are not copied.
+
+Additional GUI verification (requires a display):
+
+```sh
+python3 tests/ui_chord_smoke.py
+```

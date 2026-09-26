@@ -5,8 +5,10 @@ from tkinter import ttk
 from app.core.keyboard_layout import KeyboardLayout
 from app.core.metrics import Metrics, error_counts
 from app.core.session import Session
+from app.ui.chord_results import render_chord_results
 from app.ui.components.widgets import ACCENT, BG, MUTED, MetricCard, button, label
 from app.ui.i18n import tr
+from app.ui.laptop_chord_results import render_laptop_chord_results
 
 
 class ResultsView(tk.Frame):
@@ -21,8 +23,22 @@ class ResultsView(tk.Frame):
         label(actions, "Enter for the next exercise", 10, MUTED).pack(
             side="left", padx=16
         )
-        metrics = Metrics.from_session(session)
         label(self, "Results", 26, ACCENT).pack(anchor="w", pady=(12, 16))
+        if session.mode == "chords":
+            render_chord_results(self, session)
+        elif session.mode == "chord_changes":
+            render_laptop_chord_results(self, session)
+        else:
+            self._render_typing(session)
+
+        self._bindings = {
+            key: self.winfo_toplevel().bind(key, self._on_retry_key, add="+")
+            for key in ("<Return>", "<KP_Enter>")
+        }
+        self.focus_set()
+
+    def _render_typing(self, session: Session) -> None:
+        metrics = Metrics.from_session(session)
         grid = tk.Frame(self, bg=BG)
         grid.pack(fill="x")
         values = {
@@ -120,12 +136,6 @@ class ResultsView(tk.Frame):
                     else tr(self, "No"),
                 ),
             )
-
-        self._bindings = {
-            key: self.winfo_toplevel().bind(key, self._on_retry_key, add="+")
-            for key in ("<Return>", "<KP_Enter>")
-        }
-        self.focus_set()
 
     def _on_retry_key(self, event: tk.Event) -> str:
         if not event.state & (0x4 | 0x8 | 0x40 | 0x80 | 0x20000):

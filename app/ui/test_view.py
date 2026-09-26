@@ -3,7 +3,8 @@ from collections.abc import Callable
 
 from app.core.metrics import Metrics
 from app.core.session import Session
-from app.modes.base import BaseMode
+from app.core.sound import sound_player
+from app.modes.base import TypingMode
 from app.ui.components.widgets import (
     ACCENT,
     BAD,
@@ -25,7 +26,7 @@ class TestView(tk.Frame):
     def __init__(
         self,
         parent: tk.Misc,
-        mode: BaseMode,
+        mode: TypingMode,
         on_finish: Callable[[Session], None],
         on_cancel: Callable[[], None],
     ) -> None:
@@ -94,6 +95,8 @@ class TestView(tk.Frame):
         result = self.mode.handle_input(event.char)
         if result is None:
             return "break"
+        if result.correct and getattr(self.winfo_toplevel(), "sound_enabled", True):
+            sound_player.play_correct()
         expected = (
             tr(self, "SPACE") if result.expected_key == " " else result.expected_key
         )

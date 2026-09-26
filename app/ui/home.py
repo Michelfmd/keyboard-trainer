@@ -14,14 +14,14 @@ class HomeView(tk.Frame):
         super().__init__(parent, bg=BG)
         eyebrow = label(self, "YOUR DAILY PRACTICE", 9, ACCENT)
         eyebrow.configure(font=("DejaVu Sans Mono", 9))
-        eyebrow.pack(anchor="w", pady=(24, 12))
-        label(self, "Find your typing rhythm.", 32).pack(anchor="w")
+        eyebrow.pack(anchor="w", pady=(12, 8))
+        label(self, "Find your typing rhythm.", 27).pack(anchor="w")
         label(
             self,
             "A little focus. A little practice. Steady progress.",
             12,
             MUTED,
-        ).pack(anchor="w", pady=(10, 24))
+        ).pack(anchor="w", pady=(6, 14))
 
         descriptions = {
             "words": "Build accuracy and flow with real words.",
@@ -32,33 +32,40 @@ class HomeView(tk.Frame):
                 self,
                 bg=PANEL,
                 padx=24,
-                pady=20,
+                pady=12,
                 highlightthickness=1,
                 highlightbackground=BORDER,
             )
-            card.pack(fill="x", pady=(0, 14))
+            card.pack(fill="x", pady=(0, 10))
             top = tk.Frame(card, bg=PANEL)
             top.pack(fill="x")
             label(top, f"0{index}", 12, ACCENT).pack(side="left", padx=(0, 16))
-            label(top, title, 21).pack(side="left")
+            label(top, title, 18).pack(side="left")
             label(
-                top, "ACCURACY + FLOW" if key == "words" else "MUSCLE MEMORY", 9, MUTED
+                top,
+                {
+                    "words": "ACCURACY + FLOW",
+                    "random_keys": "MUSCLE MEMORY",
+                }.get(key, ""),
+                9,
+                MUTED,
             ).pack(side="right")
             label(card, descriptions.get(key, ""), 11, MUTED).pack(
-                anchor="w", pady=(12, 20)
+                anchor="w", pady=(6, 10)
             )
             actions = tk.Frame(card, bg=PANEL)
             actions.pack(fill="x")
             if key == "words":
-                for difficulty, caption in (
+                captions = (
                     ("easy", "Easy: 1–2 words"),
                     ("medium", "Medium: 3–4 words"),
                     ("hard", "Hard: full exercise"),
-                ):
+                )
+                for difficulty, caption in captions:
                     button(
                         actions,
                         caption,
-                        lambda level=difficulty: on_start("words", level),
+                        lambda level=difficulty, name=key: on_start(name, level),
                         primary=difficulty == "easy",
                     ).pack(side="left", padx=(0, 10))
             else:

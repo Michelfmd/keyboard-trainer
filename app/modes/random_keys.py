@@ -2,10 +2,10 @@ from random import Random
 from string import ascii_lowercase
 
 from app.core.events import InputEvent
-from app.modes.base import BaseMode
+from app.modes.base import TypingMode
 
 
-class RandomKeysMode(BaseMode):
+class RandomKeysMode(TypingMode):
     name = "random_keys"
     label = "Random Keys"
     show_keyboard = True

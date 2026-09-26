@@ -17,6 +17,7 @@ def settle(app: KeyboardTrainer, milliseconds: int = 230) -> None:
 
 def run() -> None:
     app = KeyboardTrainer()
+    app.sound_enabled = False
     failures: list[object] = []
     app.report_callback_exception = lambda *error: failures.append(error)
     try:

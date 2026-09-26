@@ -2,10 +2,10 @@ from random import Random
 
 from app.core.events import InputEvent
 from app.data.words import WORD_LISTS
-from app.modes.base import BaseMode
+from app.modes.base import TypingMode
 
 
-class WordsMode(BaseMode):
+class WordsMode(TypingMode):
     name = "words"
     label = "Words"
 

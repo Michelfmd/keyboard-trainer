@@ -45,7 +45,7 @@ class MenuView(tk.Frame):
             if activity.available:
                 button(
                     card,
-                    "Open Keyboard",
+                    "Open Keyboard" if activity.key == "keyboard" else "Open Guitar",
                     lambda key=activity.key: on_open(key),
                     primary=True,
                 ).pack(anchor="w")

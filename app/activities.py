@@ -10,6 +10,6 @@ class Activity:
 
 
 ACTIVITIES = (
-    Activity("keyboard", "Keyboard", "Words, random keys and typing statistics.", True),
-    Activity("guitar", "Guitar", "A future space for guitar practice.", False),
+    Activity("keyboard", "Keyboard", "Words and random keys.", True),
+    Activity("guitar", "Guitar", "Learn guitar chords with diagrams.", True),
 )

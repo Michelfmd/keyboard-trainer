@@ -20,11 +20,11 @@ class Metrics:
     average_response_time: float
 
     @classmethod
-    def from_session(cls, session: Session) -> "Metrics":
+    def from_session(cls, session: Session[InputEvent]) -> "Metrics":
         return cls.from_sessions((session,))
 
     @classmethod
-    def from_sessions(cls, sessions: Iterable[Session]) -> "Metrics":
+    def from_sessions(cls, sessions: Iterable[Session[InputEvent]]) -> "Metrics":
         """Weight accuracy by inputs and speed by total practice time, excluding gaps."""
         total = 0
         correct = 0
