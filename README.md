@@ -18,6 +18,8 @@ Tkinter and a graphical desktop are required. On Debian/Ubuntu, install
   Choose **Easy** (1–2 words), **Medium** (3–4 words), or **Hard** (the configured
   length, 20 words by default) on the Practice screen. Easy and Medium choose
   their word count randomly each exercise. Practice again keeps the difficulty.
+  On Results, press Enter (or keypad Enter) for the next exercise without the mouse.
+  This shortcut preserves the mode, difficulty and language; it is inactive during practice.
 - **Random Keys:** type the displayed letter. Incorrect attempts are recorded;
   the target remains until the correct key is pressed.
 - Timing starts when the exercise appears. Response time is the interval from
@@ -25,7 +27,7 @@ Tkinter and a graphical desktop are required. On Debian/Ubuntu, install
   including incorrect attempts. Time spent idle or unfocused is included.
 - Shifted letters count as typed: uppercase is incorrect for a lowercase target.
   Modifier-only keys, controls, Backspace, and Ctrl/Alt/Super combinations are
-  ignored. Escape cancels. Cancelled sessions do not enter Statistics.
+  ignored. The visible Stop / Esc button or Escape cancels immediately. Cancelled sessions do not enter Statistics.
 - The keyboard outline marks the expected key. A brief green/pink fill marks
   the physical key pressed. Unknown keys still count as incorrect input.
 - Settings offer English and Spanish for the interface and local practice words.
@@ -74,3 +76,47 @@ For the optional GUI smoke test on a headless Linux machine, install Xvfb:
 xvfb-run -a python3 tests/ui_smoke.py
 ```
 # keyboard-trainer
+
+## Interface and motion
+
+The dark interface uses mint accents, a compact navigation bar, visible keyboard
+focus, and consistent metric cards. Hover feedback (140 ms), screen entrances
+(180 ms), progress updates (120 ms), and key feedback fades (160 ms) use Tk's
+non-blocking `after` scheduler. Exercise screens appear immediately; animation
+never gates input or changes session timing. Animations cancel when their widgets
+are destroyed, and repeated interactions replace an animation instead of queuing it.
+
+Enable **Reduce motion** in Settings and save to disable animated transitions.
+Correct/incorrect key feedback remains visible. This preference, like the other
+settings, lasts for the current application run.
+
+Design references: [Monkeytype](https://monkeytype.com/) for the focused typing
+experience and [Material Design motion](https://m1.material.io/motion/duration-easing.html)
+for short, responsive desktop transitions. No web framework or animation dependency
+is required.
+
+Optional display-based animation verification:
+
+```sh
+python3 tests/ui_motion_smoke.py
+```
+
+Statistics includes a running summary of all completed sessions in the current
+application run: session count, total practice time, inputs, correct inputs,
+errors, overall accuracy, WPM and CPM, average response time and keys per second.
+Accuracy is weighted by input count, speed uses summed practice duration (without
+breaks between sessions), and response time is averaged across individual attempts.
+The individual session history remains below the summary. Cancelled exercises
+are excluded, and closing the application clears this in-memory history.
+
+## Start menu and activities
+
+The application opens on a menu with Keyboard, Guitar and access to Settings.
+Keyboard opens the existing Words and Random Keys exercises. Guitar is a disabled
+presentation card only: it has no route, exercise logic or session state.
+The Menu navigation tab returns to this screen from the keyboard section.
+
+`app/activities.py` defines the activity catalog independently of exercise modes.
+`app/ui/menu_view.py` renders the catalog and emits selection callbacks; `app/ui/app.py`
+owns navigation and routes available activities. Future guitar implementation can
+add its own screens and modes without treating guitar as a typing `BaseMode`.

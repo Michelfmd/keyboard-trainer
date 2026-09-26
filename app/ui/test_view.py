@@ -1,6 +1,5 @@
 import tkinter as tk
 from collections.abc import Callable
-from tkinter import ttk
 
 from app.core.metrics import Metrics
 from app.core.session import Session
@@ -11,8 +10,11 @@ from app.ui.components.widgets import (
     BG,
     GOOD,
     MUTED,
+    PANEL,
     MetricCard,
+    ProgressBar,
     TestText,
+    button,
     label,
 )
 from app.ui.i18n import tr
@@ -33,7 +35,11 @@ class TestView(tk.Frame):
         self.on_cancel = on_cancel
         self._timer: str | None = None
         self._binding: str | None = None
-        label(self, mode.label, 22, ACCENT).pack(anchor="w", pady=(8, 12))
+        header = tk.Frame(self, bg=BG)
+        header.pack(fill="x", pady=(8, 12))
+        label(header, mode.label, 22, ACCENT).pack(side="left")
+        self.stop_button = button(header, "Stop / Esc", self._stop)
+        self.stop_button.pack(side="right")
         cards = tk.Frame(self, bg=BG)
         cards.pack(fill="x")
         self.cards: dict[str, MetricCard] = {}
@@ -42,13 +48,17 @@ class TestView(tk.Frame):
             card = MetricCard(cards, title)
             card.grid(row=0, column=column, sticky="ew", padx=(0, 8))
             self.cards[title] = card
-        self.progress = ttk.Progressbar(self, maximum=1)
+        self.progress = ProgressBar(self)
         self.progress.pack(fill="x", pady=(14, 8))
         self.progress_label = label(self, "", 10, MUTED)
         self.progress_label.pack(anchor="w")
         self.text = TestText(self)
         if mode.show_keyboard:
-            self.text.configure(height=1, pady=12)
+            self.text.configure(height=1, pady=10, font=("DejaVu Sans Mono", 36))
+            self.text.tag_configure("center", justify="center")
+            self.text.tag_configure(
+                "current", background=PANEL, foreground=ACCENT, underline=False
+            )
         self.text.pack(fill="both", expand=True, pady=16)
         self.feedback = label(
             self, "Type the highlighted character to begin.", 11, MUTED
@@ -70,10 +80,13 @@ class TestView(tk.Frame):
         self.focus_set()
         self._tick()
 
+    def _stop(self) -> None:
+        self.mode.session.finish()
+        self.on_cancel()
+
     def _on_key(self, event: tk.Event) -> str:
         if event.keysym == "Escape":
-            self.mode.session.finish()
-            self.on_cancel()
+            self._stop()
             return "break"
         # Suppress Ctrl/Alt/Super shortcuts; Shift is allowed for printable input.
         if event.state & (0x4 | 0x8 | 0x40 | 0x80 | 0x20000):
@@ -106,9 +119,10 @@ class TestView(tk.Frame):
     def _render_target(self) -> None:
         if self.mode.show_keyboard:
             self.text.show(self.mode.get_target(), 0, [])
+            self.text.tag_add("center", "1.0", "end")
         else:
             self.text.show(self.mode.target, self.mode.position, self.mode.outcomes)
-        self.progress["value"] = self.mode.progress
+        self.progress.set(self.mode.progress)
         self.progress_label.config(
             text=tr(
                 self,

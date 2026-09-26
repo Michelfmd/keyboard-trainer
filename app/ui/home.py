@@ -1,7 +1,7 @@
 import tkinter as tk
 from collections.abc import Callable
 
-from app.ui.components.widgets import ACCENT, BG, MUTED, PANEL, button, label
+from app.ui.components.widgets import ACCENT, BG, BORDER, MUTED, PANEL, button, label
 
 
 class HomeView(tk.Frame):
@@ -12,26 +12,44 @@ class HomeView(tk.Frame):
         on_start: Callable[[str, str], None],
     ) -> None:
         super().__init__(parent, bg=BG)
-        label(self, "Make every keystroke count.", 28).pack(anchor="w", pady=(30, 10))
+        eyebrow = label(self, "YOUR DAILY PRACTICE", 9, ACCENT)
+        eyebrow.configure(font=("DejaVu Sans Mono", 9))
+        eyebrow.pack(anchor="w", pady=(24, 12))
+        label(self, "Find your typing rhythm.", 32).pack(anchor="w")
         label(
             self,
-            "Build speed, improve accuracy, and understand your typing.",
-            color=MUTED,
-        ).pack(anchor="w", pady=(0, 30))
+            "A little focus. A little practice. Steady progress.",
+            12,
+            MUTED,
+        ).pack(anchor="w", pady=(10, 24))
+
         descriptions = {
-            "words": "Practice a sequence of local words.\nEach character advances the exercise.",
-            "random_keys": "Train individual keys with a live keyboard.\nHit the correct key to continue.",
+            "words": "Build accuracy and flow with real words.",
+            "random_keys": "One key at a time. Train your muscle memory.",
         }
-        for key, title in modes.items():
-            card = tk.Frame(self, bg=PANEL, padx=24, pady=22)
-            card.pack(fill="x", pady=8)
-            label(card, title, 20, ACCENT).pack(anchor="w")
-            label(card, descriptions.get(key, ""), color=MUTED).pack(
-                anchor="w", pady=12
+        for index, (key, title) in enumerate(modes.items(), 1):
+            card = tk.Frame(
+                self,
+                bg=PANEL,
+                padx=24,
+                pady=20,
+                highlightthickness=1,
+                highlightbackground=BORDER,
             )
+            card.pack(fill="x", pady=(0, 14))
+            top = tk.Frame(card, bg=PANEL)
+            top.pack(fill="x")
+            label(top, f"0{index}", 12, ACCENT).pack(side="left", padx=(0, 16))
+            label(top, title, 21).pack(side="left")
+            label(
+                top, "ACCURACY + FLOW" if key == "words" else "MUSCLE MEMORY", 9, MUTED
+            ).pack(side="right")
+            label(card, descriptions.get(key, ""), 11, MUTED).pack(
+                anchor="w", pady=(12, 20)
+            )
+            actions = tk.Frame(card, bg=PANEL)
+            actions.pack(fill="x")
             if key == "words":
-                actions = tk.Frame(card, bg=PANEL)
-                actions.pack(anchor="w")
                 for difficulty, caption in (
                     ("easy", "Easy: 1–2 words"),
                     ("medium", "Medium: 3–4 words"),
@@ -41,14 +59,27 @@ class HomeView(tk.Frame):
                         actions,
                         caption,
                         lambda level=difficulty: on_start("words", level),
-                    ).pack(side="left", padx=(0, 8))
+                        primary=difficulty == "easy",
+                    ).pack(side="left", padx=(0, 10))
             else:
                 button(
-                    card, "Start practice", lambda name=key: on_start(name, "hard")
-                ).pack(anchor="w")
+                    actions,
+                    "Start practice",
+                    lambda name=key: on_start(name, "hard"),
+                    primary=True,
+                ).pack(side="left")
+                for letter in ["F", "J"]:
+                    tk.Label(
+                        actions,
+                        text=letter,
+                        font=("DejaVu Sans Mono", 13),
+                        fg=MUTED,
+                        bg=BG,
+                        padx=15,
+                        pady=8,
+                        highlightthickness=1,
+                        highlightbackground=BORDER,
+                    ).pack(side="right", padx=(8, 0))
         label(
-            self,
-            "Timing starts when the exercise appears. Escape returns to Practice.",
-            10,
-            MUTED,
-        ).pack(anchor="w", pady=20)
+            self, "Choose a level. The timer starts with the exercise.", 10, MUTED
+        ).pack(anchor="w", pady=(4, 12))

@@ -1,4 +1,5 @@
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from app.core.events import InputEvent
@@ -20,9 +21,21 @@ class Metrics:
 
     @classmethod
     def from_session(cls, session: Session) -> "Metrics":
-        total = len(session.events)
-        correct = sum(event.correct for event in session.events)
-        elapsed = session.elapsed_time
+        return cls.from_sessions((session,))
+
+    @classmethod
+    def from_sessions(cls, sessions: Iterable[Session]) -> "Metrics":
+        """Weight accuracy by inputs and speed by total practice time, excluding gaps."""
+        total = 0
+        correct = 0
+        elapsed = 0.0
+        response_time = 0.0
+        for session in sessions:
+            total += len(session.events)
+            elapsed += session.elapsed_time
+            for event in session.events:
+                correct += event.correct
+                response_time += event.response_time
         cps = correct / elapsed if elapsed else 0.0
         return cls(
             total,
@@ -34,9 +47,7 @@ class Metrics:
             cps,
             cps * 12,
             total / elapsed if elapsed else 0.0,
-            sum(event.response_time for event in session.events) / total
-            if total
-            else 0.0,
+            response_time / total if total else 0.0,
         )
 
 

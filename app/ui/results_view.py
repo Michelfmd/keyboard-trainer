@@ -14,6 +14,13 @@ class ResultsView(tk.Frame):
         self, parent: tk.Misc, session: Session, on_retry: Callable[[], None]
     ) -> None:
         super().__init__(parent, bg=BG)
+        self.on_retry = on_retry
+        actions = tk.Frame(self, bg=BG)
+        actions.pack(side="bottom", fill="x", pady=(14, 0))
+        button(actions, "Practice again", on_retry, primary=True).pack(side="left")
+        label(actions, "Enter for the next exercise", 10, MUTED).pack(
+            side="left", padx=16
+        )
         metrics = Metrics.from_session(session)
         label(self, "Results", 26, ACCENT).pack(anchor="w", pady=(12, 16))
         grid = tk.Frame(self, bg=BG)
@@ -113,4 +120,19 @@ class ResultsView(tk.Frame):
                     else tr(self, "No"),
                 ),
             )
-        button(self, "Practice again", on_retry).pack(anchor="w", pady=(14, 0))
+
+        self._bindings = {
+            key: self.winfo_toplevel().bind(key, self._on_retry_key, add="+")
+            for key in ("<Return>", "<KP_Enter>")
+        }
+        self.focus_set()
+
+    def _on_retry_key(self, event: tk.Event) -> str:
+        if not event.state & (0x4 | 0x8 | 0x40 | 0x80 | 0x20000):
+            self.on_retry()
+        return "break"
+
+    def destroy(self) -> None:
+        for key, binding in self._bindings.items():
+            self.winfo_toplevel().unbind(key, binding)
+        super().destroy()

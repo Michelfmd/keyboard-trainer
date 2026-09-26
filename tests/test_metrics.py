@@ -72,3 +72,47 @@ class MetricsTests(unittest.TestCase):
         self.assertEqual(self.session.events, [])
         self.assertEqual(self.session.elapsed_time, 0)
         self.assertIsNone(self.session.ended_at)
+
+    def test_aggregate_weights_inputs_and_time_and_excludes_gaps(self) -> None:
+        self.session.start()
+        self.now = 2.0
+        self.session.record("a", "a")
+        self.now = 10.0
+        self.session.finish()
+        second = Session("random_keys", lambda: self.now)
+        self.now = 100.0
+        second.start()
+        for timestamp, key in ((103.0, "a"), (107.0, "x"), (112.0, "x")):
+            self.now = timestamp
+            second.record("a", key)
+        self.now = 130.0
+        second.finish()
+        combined = Metrics.from_sessions([self.session, second])
+        self.assertEqual(combined.total_inputs, 4)
+        self.assertEqual(combined.correct_inputs, 2)
+        self.assertEqual(combined.incorrect_inputs, 2)
+        self.assertEqual(combined.elapsed_time, 40)
+        self.assertEqual(combined.accuracy, 50)
+        self.assertEqual(combined.characters_per_minute, 3)
+        self.assertAlmostEqual(combined.words_per_minute, 0.6)
+        self.assertAlmostEqual(combined.characters_per_second, 0.05)
+        self.assertEqual(combined.keys_per_second, 0.1)
+        self.assertEqual(combined.average_response_time, 3.5)
+        self.assertEqual(len(self.session.events), 1)
+        self.assertEqual(len(second.events), 3)
+
+    def test_aggregate_empty_history(self) -> None:
+        combined = Metrics.from_sessions([])
+        self.assertEqual(combined, Metrics.from_session(self.session))
+
+    def test_aggregate_updates_when_session_is_added(self) -> None:
+        history = []
+        self.assertEqual(Metrics.from_sessions(history).total_inputs, 0)
+        self.session.start()
+        self.session.record("a", "x")
+        self.session.finish()
+        history.append(self.session)
+        result = Metrics.from_sessions(history)
+        self.assertEqual(result.total_inputs, 1)
+        self.assertEqual(result.incorrect_inputs, 1)
+        self.assertEqual(result.words_per_minute, 0)
